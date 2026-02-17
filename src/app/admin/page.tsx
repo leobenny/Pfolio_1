@@ -1,7 +1,17 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { Project } from '../../data/projects';
+
+type ProjectRow = Project & { id: string };
+
+type MessageRow = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  created_at: string;
+};
 
 type Experience = {
   id?: string;
@@ -15,11 +25,11 @@ type Experience = {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'projects' | 'experiences' | 'messages'>('projects');
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectRow | null>(null);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showExperienceForm, setShowExperienceForm] = useState(false);
@@ -31,9 +41,10 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const supabase = getSupabaseClient();
       // Load projects
       const { data: projectsData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (projectsData) setProjects(projectsData);
+      if (projectsData) setProjects(projectsData as ProjectRow[]);
 
       // Load experiences
       const { data: experiencesData } = await supabase.from('experiences').select('*').order('period', { ascending: false });
@@ -41,7 +52,7 @@ export default function AdminPage() {
 
       // Load messages
       const { data: messagesData } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
-      if (messagesData) setMessages(messagesData);
+      if (messagesData) setMessages(messagesData as MessageRow[]);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -51,8 +62,9 @@ export default function AdminPage() {
 
   const handleSaveProject = async (project: Project) => {
     try {
-      if (editingProject && 'id' in editingProject) {
-        await supabase.from('projects').update(project).eq('id', (editingProject as any).id);
+      const supabase = getSupabaseClient();
+      if (editingProject) {
+        await supabase.from('projects').update(project).eq('id', editingProject.id);
       } else {
         await supabase.from('projects').insert([project]);
       }
@@ -67,6 +79,7 @@ export default function AdminPage() {
 
   const handleSaveExperience = async (experience: Experience) => {
     try {
+      const supabase = getSupabaseClient();
       if (editingExperience?.id) {
         await supabase.from('experiences').update(experience).eq('id', experience.id);
       } else {
@@ -84,6 +97,7 @@ export default function AdminPage() {
   const handleDeleteProject = async (id: string) => {
     if (!confirm('Are you sure you want to delete this project?')) return;
     try {
+      const supabase = getSupabaseClient();
       await supabase.from('projects').delete().eq('id', id);
       await loadData();
     } catch (error) {
@@ -95,6 +109,7 @@ export default function AdminPage() {
   const handleDeleteExperience = async (id: string) => {
     if (!confirm('Are you sure you want to delete this experience?')) return;
     try {
+      const supabase = getSupabaseClient();
       await supabase.from('experiences').delete().eq('id', id);
       await loadData();
     } catch (error) {
@@ -105,22 +120,22 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-black mb-8">Admin Dashboard</h1>
 
-        <div className="flex gap-4 mb-8 border-b border-zinc-800">
+        <div className="flex gap-4 mb-8 border-b border-border">
           <button
             onClick={() => setActiveTab('projects')}
             className={`pb-4 px-4 font-medium ${
-              activeTab === 'projects' ? 'border-b-2 border-white text-white' : 'text-zinc-400'
+              activeTab === 'projects' ? 'border-b-2 border-foreground text-foreground' : 'text-muted'
             }`}
           >
             Projects
@@ -128,7 +143,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('experiences')}
             className={`pb-4 px-4 font-medium ${
-              activeTab === 'experiences' ? 'border-b-2 border-white text-white' : 'text-zinc-400'
+              activeTab === 'experiences' ? 'border-b-2 border-foreground text-foreground' : 'text-muted'
             }`}
           >
             Experiences
@@ -136,7 +151,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('messages')}
             className={`pb-4 px-4 font-medium ${
-              activeTab === 'messages' ? 'border-b-2 border-white text-white' : 'text-zinc-400'
+              activeTab === 'messages' ? 'border-b-2 border-foreground text-foreground' : 'text-muted'
             }`}
           >
             Messages
@@ -150,7 +165,7 @@ export default function AdminPage() {
                 setEditingProject(null);
                 setShowProjectForm(true);
               }}
-              className="mb-6 px-6 py-2 bg-white text-black rounded-full font-bold hover:bg-zinc-200 transition"
+              className="mb-6 px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold hover:bg-accent hover:text-accent-foreground transition"
             >
               + Add Project
             </button>
@@ -166,21 +181,21 @@ export default function AdminPage() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {projects.map((project) => (
-                <div key={(project as any).id} className="p-6 bg-zinc-900 rounded-xl border border-zinc-800">
+                <div key={project.id} className="p-6 bg-card rounded-xl border border-border">
                   <h3 className="text-xl font-bold mb-2">{project.title}</h3>
-                  <p className="text-zinc-400 mb-4">{project.role}</p>
+                  <p className="text-muted mb-4">{project.role}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
                         setEditingProject(project);
                         setShowProjectForm(true);
                       }}
-                      className="px-4 py-1 bg-zinc-800 rounded-lg hover:bg-zinc-700"
+                      className="px-4 py-1 bg-card border border-border rounded-lg hover:bg-card/80"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteProject((project as any).id)}
+                      onClick={() => handleDeleteProject(project.id)}
                       className="px-4 py-1 bg-red-900/50 rounded-lg hover:bg-red-900/70"
                     >
                       Delete
@@ -199,7 +214,7 @@ export default function AdminPage() {
                 setEditingExperience(null);
                 setShowExperienceForm(true);
               }}
-              className="mb-6 px-6 py-2 bg-white text-black rounded-full font-bold hover:bg-zinc-200 transition"
+              className="mb-6 px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold hover:bg-accent hover:text-accent-foreground transition"
             >
               + Add Experience
             </button>
@@ -215,17 +230,17 @@ export default function AdminPage() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {experiences.map((exp) => (
-                <div key={exp.id} className="p-6 bg-zinc-900 rounded-xl border border-zinc-800">
+                <div key={exp.id} className="p-6 bg-card rounded-xl border border-border">
                   <h3 className="text-xl font-bold mb-2">{exp.role}</h3>
-                  <p className="text-zinc-400 mb-1">{exp.company}</p>
-                  <p className="text-zinc-500 text-sm mb-4">{exp.period}</p>
+                  <p className="text-muted mb-1">{exp.company}</p>
+                  <p className="text-muted-2 text-sm mb-4">{exp.period}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
                         setEditingExperience(exp);
                         setShowExperienceForm(true);
                       }}
-                      className="px-4 py-1 bg-zinc-800 rounded-lg hover:bg-zinc-700"
+                      className="px-4 py-1 bg-card border border-border rounded-lg hover:bg-card/80"
                     >
                       Edit
                     </button>
@@ -245,17 +260,17 @@ export default function AdminPage() {
         {activeTab === 'messages' && (
           <div className="space-y-4">
             {messages.map((msg) => (
-              <div key={msg.id} className="p-6 bg-zinc-900 rounded-xl border border-zinc-800">
+              <div key={msg.id} className="p-6 bg-card rounded-xl border border-border">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h3 className="font-bold">{msg.name}</h3>
-                    <p className="text-zinc-400 text-sm">{msg.email}</p>
+                    <p className="text-muted text-sm">{msg.email}</p>
                   </div>
-                  <span className="text-zinc-500 text-xs">
+                  <span className="text-muted-2 text-xs">
                     {new Date(msg.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-zinc-300 mt-4">{msg.message}</p>
+                <p className="text-muted mt-4">{msg.message}</p>
               </div>
             ))}
           </div>
@@ -292,13 +307,13 @@ function ProjectForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8 p-6 bg-zinc-900 rounded-xl border border-zinc-800 space-y-4">
+    <form onSubmit={handleSubmit} className="mb-8 p-6 bg-card rounded-xl border border-border space-y-4">
       <input
         type="text"
         placeholder="Title"
         value={formData.title}
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         required
       />
       <input
@@ -306,14 +321,14 @@ function ProjectForm({
         placeholder="Role"
         value={formData.role}
         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         required
       />
       <textarea
         placeholder="Description"
         value={formData.description}
         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         rows={3}
         required
       />
@@ -333,14 +348,14 @@ function ProjectForm({
                 }
               }
             }}
-            className="flex-1 px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+            className="flex-1 px-4 py-2 bg-input border border-border rounded-lg"
           />
         </div>
         <div className="flex flex-wrap gap-2">
           {formData.tags.map((tag, i) => (
             <span
               key={i}
-              className="px-3 py-1 bg-zinc-800 rounded-full text-sm flex items-center gap-2"
+              className="px-3 py-1 bg-card border border-border rounded-full text-sm flex items-center gap-2"
             >
               {tag}
               <button
@@ -369,14 +384,14 @@ function ProjectForm({
                 }
               }
             }}
-            className="flex-1 px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+            className="flex-1 px-4 py-2 bg-input border border-border rounded-lg"
             rows={2}
           />
         </div>
-        <p className="text-xs text-zinc-500 mb-2">Press Ctrl+Enter to add detail</p>
+        <p className="text-xs text-muted-2 mb-2">Press Ctrl+Enter to add detail</p>
         <div className="space-y-1">
           {(formData.details || []).map((detail, i) => (
-            <div key={i} className="px-3 py-1 bg-zinc-800 rounded flex items-center justify-between">
+            <div key={i} className="px-3 py-1 bg-card border border-border rounded flex items-center justify-between">
               <span className="text-sm">{detail}</span>
               <button
                 type="button"
@@ -395,10 +410,10 @@ function ProjectForm({
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="px-6 py-2 bg-white text-black rounded-lg font-bold">
+        <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-accent hover:text-accent-foreground transition-colors">
           Save
         </button>
-        <button type="button" onClick={onCancel} className="px-6 py-2 bg-zinc-800 rounded-lg">
+        <button type="button" onClick={onCancel} className="px-6 py-2 bg-card border border-border rounded-lg hover:bg-card/80 transition-colors">
           Cancel
         </button>
       </div>
@@ -434,13 +449,13 @@ function ExperienceForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8 p-6 bg-zinc-900 rounded-xl border border-zinc-800 space-y-4">
+    <form onSubmit={handleSubmit} className="mb-8 p-6 bg-card rounded-xl border border-border space-y-4">
       <input
         type="text"
         placeholder="Company"
         value={formData.company}
         onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         required
       />
       <input
@@ -448,7 +463,7 @@ function ExperienceForm({
         placeholder="Role"
         value={formData.role}
         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         required
       />
       <input
@@ -456,14 +471,14 @@ function ExperienceForm({
         placeholder="Period (e.g., 2020 — Present)"
         value={formData.period}
         onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         required
       />
       <textarea
         placeholder="Summary"
         value={formData.summary}
         onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-        className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+        className="w-full px-4 py-2 bg-input border border-border rounded-lg"
         rows={3}
         required
       />
@@ -483,12 +498,12 @@ function ExperienceForm({
                 }
               }
             }}
-            className="flex-1 px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+            className="flex-1 px-4 py-2 bg-input border border-border rounded-lg"
           />
         </div>
         <div className="space-y-1">
           {formData.highlights.map((highlight, i) => (
-            <div key={i} className="px-3 py-1 bg-zinc-800 rounded flex items-center justify-between">
+            <div key={i} className="px-3 py-1 bg-card border border-border rounded flex items-center justify-between">
               <span className="text-sm">{highlight}</span>
               <button
                 type="button"
@@ -521,14 +536,14 @@ function ExperienceForm({
                 }
               }
             }}
-            className="flex-1 px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg"
+            className="flex-1 px-4 py-2 bg-input border border-border rounded-lg"
             rows={2}
           />
         </div>
-        <p className="text-xs text-zinc-500 mb-2">Press Ctrl+Enter to add detail</p>
+        <p className="text-xs text-muted-2 mb-2">Press Ctrl+Enter to add detail</p>
         <div className="space-y-1">
           {formData.details.map((detail, i) => (
-            <div key={i} className="px-3 py-1 bg-zinc-800 rounded flex items-center justify-between">
+            <div key={i} className="px-3 py-1 bg-card border border-border rounded flex items-center justify-between">
               <span className="text-sm">{detail}</span>
               <button
                 type="button"
@@ -547,10 +562,10 @@ function ExperienceForm({
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="px-6 py-2 bg-white text-black rounded-lg font-bold">
+        <button type="submit" className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-accent hover:text-accent-foreground transition-colors">
           Save
         </button>
-        <button type="button" onClick={onCancel} className="px-6 py-2 bg-zinc-800 rounded-lg">
+        <button type="button" onClick={onCancel} className="px-6 py-2 bg-card border border-border rounded-lg hover:bg-card/80 transition-colors">
           Cancel
         </button>
       </div>

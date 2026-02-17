@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ export default function ContactForm() {
     setErrorMessage('');
 
     try {
+      const supabase = getSupabaseClient();
       const { error } = await supabase.from('messages').insert([
         {
           name: formData.name,
@@ -36,12 +37,14 @@ export default function ContactForm() {
       setTimeout(() => {
         setStatus('idle');
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('error');
-      if (error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+      const message =
+        error instanceof Error ? error.message : typeof error === "string" ? error : "";
+      if (message.includes('schema cache') || message.includes('does not exist')) {
         setErrorMessage('Database tables not set up. Please run the SQL schema in Supabase dashboard.');
       } else {
-        setErrorMessage(error.message || 'Failed to send message. Please try again.');
+        setErrorMessage(message || 'Failed to send message. Please try again.');
       }
     }
   };
@@ -62,7 +65,7 @@ export default function ContactForm() {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
-          className="w-full px-4 py-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-900 transition-all"
+          className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-2 focus:outline-none focus:border-accent/50 transition-all"
         />
         <input
           type="email"
@@ -70,7 +73,7 @@ export default function ContactForm() {
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
-          className="w-full px-4 py-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-900 transition-all"
+          className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-2 focus:outline-none focus:border-accent/50 transition-all"
         />
         <textarea
           placeholder="Your Message"
@@ -78,7 +81,7 @@ export default function ContactForm() {
           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
           required
           rows={5}
-          className="w-full px-4 py-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-900 transition-all resize-none"
+          className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-2 focus:outline-none focus:border-accent/50 transition-all resize-none"
         />
       </div>
 
@@ -107,11 +110,11 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="w-full flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         {status === 'loading' ? (
           <>
-            <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+            <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
             Sending...
           </>
         ) : (

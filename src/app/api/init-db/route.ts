@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { getSupabaseClient } from '../../../lib/supabase';
 
 export async function POST() {
   try {
+    const supabase = getSupabaseClient();
+
     // This is a helper endpoint to verify tables exist
     // You still need to run the SQL schema in Supabase dashboard
     
@@ -40,11 +42,12 @@ export async function POST() {
       success: true,
       message: 'All tables exist and are accessible',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Unknown error',
+        error: message,
       },
       { status: 500 }
     );

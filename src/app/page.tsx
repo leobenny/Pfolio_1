@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Linkedin, Send, Download } from 'lucide-react';
-import { projects as staticProjects } from '../data/projects';
+import { projects as staticProjects, type Project } from '../data/projects';
 import ProjectCard from '../components/ProjectCard';
 import ContactForm from '../components/ContactForm';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
+
+const ThemeToggle = dynamic(() => import('../components/ThemeToggle'), { ssr: false });
 
 type Experience = {
   company: string;
@@ -18,9 +21,9 @@ type Experience = {
 
 
 export default function Home() {
-  const [projects, setProjects] = useState(staticProjects);
+  const [projects, setProjects] = useState<Project[]>(staticProjects);
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [selectedProject, setSelectedProject] = useState<(typeof staticProjects)[number] | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,16 +33,17 @@ export default function Home() {
 
   const loadData = async () => {
     try {
+      const supabase = getSupabaseClient();
       // Load projects from Supabase, fallback to static
       const { data: projectsData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
       if (projectsData && projectsData.length > 0) {
-        setProjects(projectsData as any);
+        setProjects(projectsData as Project[]);
       }
 
       // Load experiences from Supabase, fallback to static
       const { data: experiencesData } = await supabase.from('experiences').select('*').order('period', { ascending: false });
       if (experiencesData && experiencesData.length > 0) {
-        setExperiences(experiencesData as any);
+        setExperiences(experiencesData as Experience[]);
       } else {
         // Use static experiences as fallback
         setExperiences([
@@ -130,28 +134,31 @@ export default function Home() {
 
   return (
     <>
-      <main className="bg-zinc-950 text-zinc-200 min-h-screen selection:bg-zinc-500/30">
+      <main className="bg-background text-foreground min-h-screen">
       {/* Sticky Header */}
-      <nav className="fixed top-0 w-full z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 px-8 py-5 flex justify-between items-center">
-        <span className="font-bold text-xl tracking-tighter text-white">BENAYAS.</span>
-        <div className="hidden md:flex gap-8 text-sm font-medium text-zinc-500">
-          <a href="#projects" className="hover:text-white transition">Projects</a>
-          <a href="#experience" className="hover:text-white transition">Experience</a>
-          <a href="#contact" className="hover:text-white transition">Contact</a>
+      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border px-8 py-5 flex justify-between items-center">
+        <span className="font-bold text-xl tracking-tighter text-foreground">BENAYAS.</span>
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex gap-8 text-sm font-medium text-muted-2">
+            <a href="#projects" className="hover:text-foreground transition">Projects</a>
+            <a href="#experience" className="hover:text-foreground transition">Experience</a>
+            <a href="#contact" className="hover:text-foreground transition">Contact</a>
+          </div>
+          <ThemeToggle />
         </div>
       </nav>
 
       {/* Hero Section */}
       <section className="pt-48 pb-24 px-8 max-w-6xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          <h1 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter text-white">
-            Benayas <br/> <span className="text-zinc-600">Teshome</span>
+          <h1 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter text-foreground">
+            Benayas <br/> <span className="text-muted-2">Teshome</span>
           </h1>
-          <p className="text-xl md:text-2xl text-zinc-400 max-w-3xl leading-relaxed mb-12">
+          <p className="text-xl md:text-2xl text-muted max-w-3xl leading-relaxed mb-12">
             Results-driven Product & Business Leader bridging technical fluency with executive leadership[cite: 3, 5].
           </p>
           <div className="flex gap-4">
-            <a href="/Resume_OG.pdf" download className="flex items-center gap-2 bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-purple-600 hover:text-white transition-all">
+            <a href="/Resume_OG.pdf" download className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full font-bold hover:bg-accent hover:text-accent-foreground transition-all">
               <Download size={18} /> Download CV 
             </a>
           </div>
@@ -160,8 +167,7 @@ export default function Home() {
 
       {/* Skills / Stack Section [cite: 7] */}
       <motion.section
-        className="py-20 px-8 max-w-6xl mx-auto border-y border-zinc-800 relative overflow-hidden group"
-        whileHover={{ backgroundColor: 'rgba(24,24,27,0.85)' }}
+        className="py-20 px-8 max-w-6xl mx-auto border-y border-border relative overflow-hidden group hover:bg-card/60 transition-colors"
         transition={{ type: 'spring', stiffness: 120, damping: 18 }}
       >
         {/* subtle ambient hover glow */}
@@ -172,40 +178,40 @@ export default function Home() {
           animate={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
         >
-          <div className="absolute -top-32 left-1/4 h-64 w-64 rounded-full bg-zinc-700/10 blur-3xl" />
-          <div className="absolute -bottom-32 right-1/4 h-64 w-64 rounded-full bg-zinc-800/15 blur-3xl" />
+          <div className="absolute -top-32 left-1/4 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute -bottom-32 right-1/4 h-64 w-64 rounded-full bg-foreground/5 blur-3xl" />
         </motion.div>
 
         <div className="relative grid grid-cols-2 md:grid-cols-4 gap-8">
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
+            <h4 className="text-foreground font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
               Design
             </h4>
-            <p className="text-zinc-500 text-sm group-hover:text-zinc-300 transition-colors">
+            <p className="text-muted-2 text-sm group-hover:text-foreground transition-colors">
               Figma, Illustrator, Blender [cite: 8, 11]
             </p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
+            <h4 className="text-foreground font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
               Leadership
             </h4>
-            <p className="text-zinc-500 text-sm group-hover:text-zinc-300 transition-colors">
+            <p className="text-muted-2 text-sm group-hover:text-foreground transition-colors">
               COO, Agile, Roadmap Management [cite: 12, 28]
             </p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
+            <h4 className="text-foreground font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
               Dev
             </h4>
-            <p className="text-zinc-500 text-sm group-hover:text-zinc-300 transition-colors">
+            <p className="text-muted-2 text-sm group-hover:text-foreground transition-colors">
               Responsive Design, spatial UI [cite: 9, 10]
             </p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
+            <h4 className="text-foreground font-bold mb-4 uppercase text-xs tracking-widest group-hover:tracking-[0.2em] transition-all duration-300">
               Focus
             </h4>
-            <p className="text-zinc-500 text-sm group-hover:text-zinc-300 transition-colors">
+            <p className="text-muted-2 text-sm group-hover:text-foreground transition-colors">
               GIS, Fintech, Government [cite: 13]
             </p>
           </div>
@@ -214,7 +220,7 @@ export default function Home() {
 
       {/* Projects Section */}
       <section id="projects" className="py-32 px-8 max-w-6xl mx-auto">
-        <h2 className="text-4xl font-black text-white mb-16 tracking-tight">Selected Projects [cite: 37]</h2>
+        <h2 className="text-4xl font-black text-foreground mb-16 tracking-tight">Selected Projects [cite: 37]</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {projects.map((p, i) => (
             <ProjectCard
@@ -230,7 +236,7 @@ export default function Home() {
       {/* Experience Section */}
       <section
         id="experience"
-        className="py-32 px-8 max-w-6xl mx-auto border-y border-zinc-800 relative overflow-hidden"
+        className="py-32 px-8 max-w-6xl mx-auto border-y border-border relative overflow-hidden"
       >
         {/* Ambient background glow */}
         <motion.div
@@ -241,8 +247,8 @@ export default function Home() {
           viewport={{ once: true, amount: 0.3 }}
           className="pointer-events-none absolute inset-0"
         >
-          <div className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-zinc-700/20 blur-3xl" />
-          <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-zinc-800/30 blur-3xl" />
+          <div className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-foreground/5 blur-3xl" />
         </motion.div>
 
         <motion.div
@@ -254,14 +260,14 @@ export default function Home() {
         >
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
-              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+              <h2 className="text-4xl md:text-5xl font-black text-foreground tracking-tight">
                 Experience
               </h2>
-              <p className="mt-4 text-zinc-400 max-w-xl text-sm md:text-base">
+              <p className="mt-4 text-muted max-w-xl text-sm md:text-base">
                 A snapshot of the roles where strategy, product thinking, and execution came together.
               </p>
             </div>
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-2">
               TRACK RECORD
             </p>
           </div>
@@ -282,41 +288,41 @@ export default function Home() {
                   transition: { type: 'spring', stiffness: 260, damping: 18 },
                 }}
                 whileTap={{ scale: 0.99, rotateX: 0, rotateY: 0 }}
-                className="group relative cursor-pointer rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-900/40 to-zinc-900/90 border border-zinc-800/80 px-7 py-8 md:px-8 md:py-9 shadow-[0_25px_60px_rgba(0,0,0,0.6)]/20"
+                className="group relative cursor-pointer rounded-3xl bg-card border border-border px-7 py-8 md:px-8 md:py-9 shadow-[0_25px_60px_rgba(0,0,0,0.18)] hover:bg-card/80 transition-colors"
                 onClick={() => setSelectedExperience(exp)}
               >
                 {/* Interactive border highlight */}
-                <div className="absolute inset-0 rounded-3xl border border-zinc-700/40 opacity-0 group-hover:opacity-100 group-hover:border-zinc-500/70 transition-all duration-300 pointer-events-none" />
+                <div className="absolute inset-0 rounded-3xl border border-border opacity-0 group-hover:opacity-100 group-hover:border-accent/50 transition-all duration-300 pointer-events-none" />
 
                 <div className="flex items-start gap-4">
-                  <div className="mt-1 h-10 w-px bg-gradient-to-b from-zinc-500 via-zinc-500/40 to-transparent group-hover:from-zinc-200 group-hover:via-zinc-200/40 transition-all duration-300" />
+                  <div className="mt-1 h-10 w-px bg-gradient-to-b from-accent/70 via-accent/20 to-transparent transition-all duration-300" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-2">
                           {exp.period}
                         </p>
-                        <h3 className="mt-2 text-xl font-semibold text-white tracking-tight">
+                        <h3 className="mt-2 text-xl font-semibold text-foreground tracking-tight">
                           {exp.role}
                         </h3>
-                        <p className="text-sm text-zinc-400 mt-1">{exp.company}</p>
+                        <p className="text-sm text-muted mt-1">{exp.company}</p>
                       </div>
-                      <div className="h-9 px-3 rounded-full border border-zinc-700/80 text-[11px] uppercase tracking-[0.18em] text-zinc-400 flex items-center justify-center group-hover:border-zinc-500 group-hover:text-zinc-200 group-hover:bg-zinc-900/80 transition-all duration-300">
+                      <div className="h-9 px-3 rounded-full border border-border text-[11px] uppercase tracking-[0.18em] text-muted flex items-center justify-center group-hover:border-accent/50 group-hover:text-foreground group-hover:bg-card/80 transition-all duration-300">
                         Impact
                       </div>
                     </div>
 
-                    <p className="mt-5 text-sm text-zinc-300/90 leading-relaxed">
+                    <p className="mt-5 text-sm text-muted leading-relaxed">
                       {exp.summary}
                     </p>
 
-                    <ul className="mt-5 space-y-2.5 text-sm text-zinc-400">
+                    <ul className="mt-5 space-y-2.5 text-sm text-muted">
                       {exp.highlights.map((item) => (
                         <li
                           key={item}
-                          className="flex items-start gap-2 group-hover:text-zinc-200/90 transition-colors"
+                          className="flex items-start gap-2 group-hover:text-foreground transition-colors"
                         >
-                          <span className="mt-1 h-1 w-1 rounded-full bg-zinc-400 group-hover:bg-zinc-100 transition-colors" />
+                          <span className="mt-1 h-1 w-1 rounded-full bg-muted-2 group-hover:bg-accent transition-colors" />
                           <span>{item}</span>
                         </li>
                       ))}
@@ -330,31 +336,31 @@ export default function Home() {
       </section>
 
       {/* Contact Section [cite: 2] */}
-      <section id="contact" className="py-32 px-8 bg-zinc-900/60 border-t border-zinc-800">
+      <section id="contact" className="py-32 px-8 bg-card/60 border-t border-border">
         <div className="max-w-6xl mx-auto flex flex-col items-center">
-          <h2 className="text-5xl font-black text-white mb-8 tracking-tighter">Let's Connect.</h2>
+          <h2 className="text-5xl font-black text-foreground mb-8 tracking-tighter">Let&apos;s Connect.</h2>
           <div className="flex gap-6 mb-8">
             <a
               href="mailto:benayas@gebeta.app"
-              className="p-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 hover:text-white hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.8)] transition-all"
+              className="p-4 rounded-full bg-background/80 text-muted hover:bg-card hover:text-foreground hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.18)] transition-all border border-border"
             >
               <Mail />
             </a>
             <a
               href="https://linkedin.com"
-              className="p-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 hover:text-white hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.8)] transition-all"
+              className="p-4 rounded-full bg-background/80 text-muted hover:bg-card hover:text-foreground hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.18)] transition-all border border-border"
             >
               <Linkedin />
             </a>
             <a
               href="https://t.me/benayas"
-              className="p-4 rounded-full bg-zinc-950/80 text-zinc-300 hover:bg-zinc-800 hover:text-white hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.8)] transition-all"
+              className="p-4 rounded-full bg-background/80 text-muted hover:bg-card hover:text-foreground hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.18)] transition-all border border-border"
             >
               <Send />
             </a>
           </div>
           <ContactForm />
-          <p className="mt-12 text-zinc-600 text-sm">© 2026 Benayas Teshome. Based in Addis Ababa[cite: 1, 35].</p>
+          <p className="mt-12 text-muted-2 text-sm">© 2026 Benayas Teshome. Based in Addis Ababa[cite: 1, 35].</p>
         </div>
       </section>
       </main>
@@ -380,11 +386,11 @@ export default function Home() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="relative z-10 w-full max-w-2xl rounded-3xl bg-zinc-950 border border-zinc-800/80 shadow-[0_30px_80px_rgba(0,0,0,0.85)] p-7 md:p-9"
+              className="relative z-10 w-full max-w-2xl rounded-3xl bg-background border border-border shadow-[0_30px_80px_rgba(0,0,0,0.22)] p-7 md:p-9"
             >
               <button
                 onClick={closeModal}
-                className="absolute right-5 top-5 text-xs uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/70 px-3 py-1.5 rounded-full border border-zinc-800/80 hover:border-zinc-600 transition-all"
+                className="absolute right-5 top-5 text-xs uppercase tracking-[0.18em] text-muted-2 hover:text-foreground hover:bg-card/70 px-3 py-1.5 rounded-full border border-border hover:border-accent/40 transition-all"
               >
                 Close
               </button>
@@ -392,37 +398,37 @@ export default function Home() {
               {selectedProject && (
                 <div className="space-y-5 md:space-y-6">
                   <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-2">
                       Project
                     </p>
-                    <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
+                    <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
                       {selectedProject.title}
                     </h2>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted">
                       {selectedProject.role}
                     </p>
                   </div>
 
-                  <p className="text-sm md:text-base text-zinc-300/90 leading-relaxed">
+                  <p className="text-sm md:text-base text-muted leading-relaxed">
                     {selectedProject.description}
                   </p>
 
-                  {Array.isArray((selectedProject as any).details) && (
-                    <ul className="mt-2 space-y-2.5 text-sm text-zinc-400">
-                      {(selectedProject as any).details.map((item: string) => (
+                  {selectedProject.details?.length ? (
+                    <ul className="mt-2 space-y-2.5 text-sm text-muted">
+                      {selectedProject.details.map((item) => (
                         <li key={item} className="flex gap-2">
-                          <span className="mt-1 h-1 w-1 rounded-full bg-zinc-400" />
+                          <span className="mt-1 h-1 w-1 rounded-full bg-muted-2" />
                           <span>{item}</span>
                         </li>
                       ))}
                     </ul>
-                  )}
+                  ) : null}
 
                   <div className="pt-4 flex flex-wrap gap-2">
                     {selectedProject.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-[10px] px-2.5 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/70 text-zinc-300"
+                        className="text-[10px] px-2.5 py-1.5 rounded-full bg-card border border-border text-muted"
                       >
                         {tag}
                       </span>
@@ -434,27 +440,27 @@ export default function Home() {
               {selectedExperience && (
                 <div className="space-y-5 md:space-y-6">
                   <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-2">
                       Experience
                     </p>
-                    <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
+                    <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
                       {selectedExperience.role}
                     </h2>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                       <span>{selectedExperience.company}</span>
-                      <span className="h-1 w-1 rounded-full bg-zinc-600" />
+                      <span className="h-1 w-1 rounded-full bg-muted-2" />
                       <span>{selectedExperience.period}</span>
                     </div>
                   </div>
 
-                  <p className="text-sm md:text-base text-zinc-300/90 leading-relaxed">
+                  <p className="text-sm md:text-base text-muted leading-relaxed">
                     {selectedExperience.summary}
                   </p>
 
-                  <ul className="mt-2 space-y-2.5 text-sm text-zinc-400">
+                  <ul className="mt-2 space-y-2.5 text-sm text-muted">
                     {selectedExperience.details.map((item) => (
                       <li key={item} className="flex gap-2">
-                        <span className="mt-1 h-1 w-1 rounded-full bg-zinc-400" />
+                        <span className="mt-1 h-1 w-1 rounded-full bg-muted-2" />
                         <span>{item}</span>
                       </li>
                     ))}

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 
 export default function AdminLayout({
   children,
@@ -18,6 +18,7 @@ export default function AdminLayout({
 
   const checkAuth = async () => {
     try {
+      const supabase = getSupabaseClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setAuthenticated(true);
@@ -36,7 +37,7 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-xl">Loading...</div>
       </div>
     );
@@ -44,7 +45,7 @@ export default function AdminLayout({
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-xl">Unauthorized</div>
       </div>
     );
